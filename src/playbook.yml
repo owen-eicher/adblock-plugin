@@ -1,0 +1,24 @@
+---
+- name: Set Ad Block IPS
+  connection: network_cli
+  hosts: gateways
+  vars_files:
+          vars.yml
+  user: "{{ plugin_user }}"
+  tasks:
+          - name: Backup Gateway
+            community.network.edgeos_config:
+                    backup: yes
+                    backup_options:
+                            filename: backup.cfg
+                            dir_path: /home/tnttech/ansible-playbooks
+          - name: Delete Address Group
+            community.network.edgeos_config:
+                    lines:
+                            - delete firewall group address-group {{ group_name }}
+
+          - name: Create Address Group
+            community.network.edgeos_config:
+                    lines:
+                            - set firewall group address-group {{ group_name }} address "{{ item }}"
+            loop: "{{ ips }}"

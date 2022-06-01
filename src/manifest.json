@@ -1,0 +1,64 @@
+{
+    "version": "1",
+    "information": {
+        "name": "edgerouter-adblock",
+        "displayName": "Client-Zone Adblock Plugin",
+        "description": ".",
+        "url": "https://github.com/Ubiquiti-App/UCRM-plugins",
+        "version": "1.0.0",
+        "ucrmVersionCompliancy": {
+            "min": "2.14.0",
+            "max": null
+        },
+        "unmsVersionCompliancy": {
+            "min": "1.0.0-alpha.1",
+            "max": null
+        },
+        "author": "Owen Eicher"
+    },
+    "menu": [
+        {
+            "key": "Services",
+            "label": "Advertisement Blocking",
+            "type": "client",
+            "target": "iframe"
+        }
+    ],
+    "configuration": [
+	{
+		"key": "nms-api-token",
+		"label": "NMS API Token",
+		"description": "Token required to interface with NMS API",
+		"required": 1
+	},
+	{
+		"key": "destination-rule-number",
+		"label": "DNAT Rule Number",
+		"description": "Starting ID For Destination NAT Rules (100)",
+		"required": 1
+	},
+	{
+		"key": "source-rule-number",
+		"label": "SNAT Rule Number",
+		"description": "Starting ID For Source NAT Rules (5100)",
+		"required": 1
+	},
+	{
+		"key": "group-name",
+		"label": "NAT Address Group Name (AD_BLOCK)",
+		"required": 1
+	},
+	{
+		"key": "user-name",
+		"label": "Router User",
+		"description": "User Profile for Ansible",
+		"required": 1
+	},
+	{
+		"key": "inside-address",
+		"label": "Ad Blocking DNS IP",
+		"description": "This IP points the DNS which will blacklist ads",
+		"required": 1
+	}
+    ]
+}

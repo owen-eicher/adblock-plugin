@@ -1,0 +1,43 @@
+---
+- name: Create NAT Rules
+  connection: network_cli
+  hosts: gateways
+  vars_files:
+          vars.yml
+  user: "{{ plugin_user }}"
+  tasks:
+          - name: Backup Gateway
+            community.network.edgeos_config:
+                    backup: yes
+                    backup_options:
+                            filename: backup.cfg
+                            dir_path: /home/tnttech/ansible-playbooks
+
+          - name: Setup SNAT Rules For Ad Blocking
+            community.network.edgeos_config:
+                    lines:
+                            - set service nat rule "{{ item.num }}" description 'Ad Block'
+                            - set service nat rule "{{ item.num }}" destination address "{{ inside_address }}"
+                            - set service nat rule "{{ item.num }}" destination port 53
+                            - set service nat rule "{{ item.num }}" log disable
+                            - set service nat rule "{{ item.num }}" protocol tcp_udp
+                            - set service nat rule "{{ item.num }}" source group address-group "{{ group_name }}"
+                            - set service nat rule "{{ item.num }}" outbound-interface "{{ item.val }}"
+                            - set service nat rule "{{ item.num }}" type masquerade
+            loop: "{{ source_interfaces }}"
+
+          - name: Setup DNAT Rules For Ad Blocking
+            community.network.edgeos_config:
+                    lines:
+                            - set service nat rule "{{ item.num }}" description 'Ad Block'
+                            - set service nat rule "{{ item.num }}" destination port 53
+                            - set service nat rule "{{ item.num }}" inbound-interface "{{ item.val }}"
+                            - set service nat rule "{{ item.num }}" inside-address address "{{ inside_address }}"
+                            - set service nat rule "{{ item.num }}" inside-address port 53
+                            - set service nat rule "{{ item.num }}" log disable
+                            - set service nat rule "{{ item.num }}" protocol tcp_udp
+                            - set service nat rule "{{ item.num }}" source group address-group "{{ group_name }}"
+                            - set service nat rule "{{ item.num }}" type destination
+            loop: "{{ interfaces }}"
+         
+          

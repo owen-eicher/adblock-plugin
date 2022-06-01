@@ -1,0 +1,8 @@
+{
+    "require": {
+        "php": ">=7.4",
+        "ubnt/ucrm-plugin-sdk": "0.8.2",
+        "guzzlehttp/guzzle": "^7.4",
+        "symfony/filesystem": "^5.4"
+    }
+}
