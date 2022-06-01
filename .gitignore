@@ -3,3 +3,5 @@ data/
 ucrm.json
 .ucrm-plugin-running
 .ucrm-plugin-execution-requested
+edgerouter-adblock.zip
+src/composer.lock

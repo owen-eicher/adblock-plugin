@@ -1,0 +1,18 @@
+---
+- name: Restore Gateway Configuration
+  connection: network_cli
+  hosts: gateways
+  vars_files:
+          data/vars.yml
+  user: "{{ plugin_user }}"
+  tasks:
+          - name: Remove Nat
+            community.network.edgeos_config:
+                    lines:
+                            - delete service nat rule {{ item.num }}
+            loop: "{{ interfaces }}"
+            
+          - name: Restore Config
+            community.network.edgeos_config:
+                    backup: no
+                    src: "{{ backup_path }}/no_rules.conf"

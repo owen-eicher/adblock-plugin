@@ -18,24 +18,9 @@ else {
 		$text = file_get_contents($fname);
 		$data = json_decode($text, true);
 		if (strcmp($_POST["block-status"], "yes") == 0) {
-			$is_set = false;
-			foreach(array_keys($data) as $key){
-				if ($data[$key] == $id){
-					$is_set = true;
-					break;
-				}
-			}
-			if (! $is_set){
-				array_push($data, $id);
-			}
+			$data[$id] = true;
 		} else {
-			$keys = array_keys($data);
-			foreach ($keys as $key){
-				if ($data[$key] == $id){
-					unset($data[$key]);
-					break;
-				}
-			}
+			$data[$id] = false;
 		}
 		$file = fopen($fname, "w") or die("Cannot write to this file");
 		fwrite($file, json_encode($data));

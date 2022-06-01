@@ -3,15 +3,20 @@
   connection: network_cli
   hosts: gateways
   vars_files:
-          vars.yml
+          data/vars.yml
   user: "{{ plugin_user }}"
   tasks:
           - name: Backup Gateway
             community.network.edgeos_config:
                     backup: yes
                     backup_options:
-                            filename: backup.cfg
-                            dir_path: /home/tnttech/ansible-playbooks
+                            dir_path: "{{ backup_path }}"
+                            filename: "no_rules.conf"
+
+          - name: Create Address Group
+            community.network.edgeos_config:
+                    lines:
+                            - set firewall group address-group "{{ group_name }}"
 
           - name: Setup SNAT Rules For Ad Blocking
             community.network.edgeos_config:

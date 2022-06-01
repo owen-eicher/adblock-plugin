@@ -27,6 +27,10 @@ try {
 		log_mess("Creating responses file ...");
 		$file = fopen($fname, "w") or log_mess("Cannot create file");
 		$json = array();
+		$clients = $api->get("clients");
+		foreach($clients as $client){
+			$json[$client["id"]] = false;
+		}
 		fwrite($file, json_encode($json));
 		fclose($file);	
 		log_mess("Created file successfully");
@@ -41,7 +45,7 @@ try {
 		$ucrm = $site["ucrm"];
 		if (!is_null($ucrm)){
 			$id = intval($ucrm["client"]["id"]);
-			if (in_array($id, $data)){
+			if ($data[$id]){
 				$siteId = $site["id"];
 				array_push($siteids, $siteId);
 			}
@@ -49,17 +53,20 @@ try {
 	}
 	log_mess("Gathered siteIds from sites");
 	$ips = array();
+	$noIps = array();
 	$gateway = false;
 	$devices = $nmsapi->get('devices');
 	foreach($devices as $device){
 		$id = $device["identification"]["site"]["id"];
+		$ip = $device["ipAddress"];
+		$pos = strpos($ip, '/');
+		if ($pos !== false) {
+			$ip = substr($ip, 0, $pos);
+		}	
 		if (in_array($id, $siteids)) {
-			$ip = $device["ipAddress"];
-			$pos = strpos($ip, '/');
-			if ($pos !== false) {
-				$ip = substr($ip, 0, $pos);
-			}	
 			array_push($ips, $ip);
+		} else {
+			array_push($noIps, $ip);
 		}
 		if (! $gateway and strcmp($device["identification"]["role"], "gateway") === 0) {
 			$gateway = $device["identification"]["id"];
@@ -75,16 +82,25 @@ try {
 	$inAddress = $config["inside-address"];
 
 	// Create vars.yml for Ansible Execution
-	$fname = "vars.yml";
+	$fname = "data/vars.yml";
 	$file = fopen($fname, 'w');
 	fwrite($file, "---\n");
 	fwrite($file, "group_name: ".$groupName."\n");
+	fwrite($file, "backup_path: data/backups\n");
 	fwrite($file, "inside_address: ".$inAddress."\n");
 	fwrite($file, "plugin_user: ".$userName."\n");
+
+	// Write Opt-In IPs
 	fwrite($file, "ips:\n");
 	foreach ($ips as $ip){
 		fwrite($file, "  - ".$ip."\n");
 	}
+	// Write Opt-Out IPs
+	fwrite($file, "no_ips:\n");
+	foreach ($noIps as $ip){
+		fwrite($file, "  - ".$ip."\n");
+	}
+	
 	$detail = $nmsapi->get('devices/'.$gateway.'/detail');
 	$interfaces = array();
 	fwrite($file, "interfaces:\n");
