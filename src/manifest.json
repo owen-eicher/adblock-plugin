@@ -4,7 +4,7 @@
         "name": "edgerouter-adblock",
         "displayName": "Client-Zone Adblock Plugin",
         "description": ".",
-        "url": "https://github.com/Ubiquiti-App/UCRM-plugins",
+        "url": "https://github.com/owen-eicher/adblock-plugin",
         "version": "1.0.0",
         "ucrmVersionCompliancy": {
             "min": "2.14.0",
