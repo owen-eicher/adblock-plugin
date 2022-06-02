@@ -10,21 +10,18 @@ function log_mess($message){
 // Clear log on each run
 $temp = fopen($log_file, "w");
 fclose($temp);
-log_mess("Log File cleared");
+log_mess(shell_exec("date"));
 
 require_once __DIR__ . '/vendor/autoload.php';
 try {
 	$api = \Ubnt\UcrmPluginSdk\Service\UcrmApi::create();
-	log_mess("UCRM API Instance Created");
 	$config = json_decode(file_get_contents("data/config.json"), true);
 	$token = $config["nms-api-token"];
 	$nmsapi = \Ubnt\UcrmPluginSdk\Service\UnmsApi::create($token);
-	log_mess("NMS API Instance Created");
 
 	// Assert that the response file exists
 	$fname = "data/responses.json";
 	if (!file_exists($fname)) {
-		log_mess("Creating responses file ...");
 		$file = fopen($fname, "w") or log_mess("Cannot create file");
 		$json = array();
 		$clients = $api->get("clients");
@@ -33,13 +30,10 @@ try {
 		}
 		fwrite($file, json_encode($json));
 		fclose($file);	
-		log_mess("Created file successfully");
 	} 
-	log_mess("Loading Response File");
 	$json = file_get_contents($fname);
 	$data = json_decode($json, true);
 	$sites = $nmsapi->get('sites');
-	log_mess("Gathered Sites");
 	$siteids = array();
 	foreach($sites as $site){
 		$ucrm = $site["ucrm"];
@@ -51,10 +45,8 @@ try {
 			}
 		}
 	}
-	log_mess("Gathered siteIds from sites");
 	$ips = array();
 	$noIps = array();
-	$gateway = false;
 	$devices = $nmsapi->get('devices');
 	foreach($devices as $device){
 		$id = $device["identification"]["site"]["id"];
@@ -64,15 +56,16 @@ try {
 			$ip = substr($ip, 0, $pos);
 		}	
 		if (in_array($id, $siteids)) {
-			array_push($ips, $ip);
-		} else {
+			if (!in_array($ip, $ips)){
+				array_push($ips, $ip);
+				if (($key = array_search($ip, $noIps)) !== false){
+					unset($noIps[$key]);
+				}
+			}
+		} elseif (!in_array($ip, $ips) and !in_array($ip, $noIps)) {
 			array_push($noIps, $ip);
 		}
-		if (! $gateway and strcmp($device["identification"]["role"], "gateway") === 0) {
-			$gateway = $device["identification"]["id"];
-		}
 	}
-	log_mess("Gathered ips to transfer");
 
 	// Gather Configuration Information
 	$groupName = $config["group-name"];
@@ -80,6 +73,7 @@ try {
 	$sRuleNum = $config["source-rule-number"];
 	$userName = $config["user-name"];
 	$inAddress = $config["inside-address"];
+	$gateway = $config["gateway-id"];
 
 	// Create vars.yml for Ansible Execution
 	$fname = "data/vars.yml";

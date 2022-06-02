@@ -32,6 +32,12 @@
 		"required": 1
 	},
 	{
+		"key": "gateway-id",
+		"label": "Gateway ID",
+		"decription": "UNMS Device ID For Gateway Edgerouter",
+		"required": 1
+	},
+	{
 		"key": "destination-rule-number",
 		"label": "DNAT Rule Number",
 		"description": "Starting ID For Destination NAT Rules (100)",

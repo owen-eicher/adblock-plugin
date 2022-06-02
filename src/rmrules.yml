@@ -6,13 +6,14 @@
           data/vars.yml
   user: "{{ plugin_user }}"
   tasks:
-          - name: Remove Nat
+          - name: Remove SNAT
+            community.network.edgeos_config:
+                    lines:
+                            - delete service nat rule {{ item.num }}
+            loop: "{{ source_interfaces }}"
+            
+          - name: Remove DNAT
             community.network.edgeos_config:
                     lines:
                             - delete service nat rule {{ item.num }}
             loop: "{{ interfaces }}"
-            
-          - name: Restore Config
-            community.network.edgeos_config:
-                    backup: no
-                    src: "{{ backup_path }}/no_rules.conf"
