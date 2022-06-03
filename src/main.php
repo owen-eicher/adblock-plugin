@@ -1,21 +1,18 @@
 <?php
-$log_file = "data/plugin.log";
-function log_mess($message){
-	global $log_file;
-	$file = fopen($log_file, "a");
-	fwrite($file, $message . "\n");
-	fclose($file);
-}
-
-// Clear log on each run
-$temp = fopen($log_file, "w");
-fclose($temp);
-log_mess(shell_exec("date"));
-
-require_once __DIR__ . '/vendor/autoload.php';
 try {
+	require_once __DIR__ . '/vendor/autoload.php';
+	$configManager = \Ubnt\UcrmPluginSdk\Service\PluginConfigManager::create();
+	$config = $configManager->loadConfig();
+	$log = \Ubnt\UcrmPluginSdk\Service\PluginLogManager::create();
+	$log->clearLog();
+	function log_mess($message){
+		global $log;
+		$log->appendLog($message);
+	}
+
+	log_mess(shell_exec("date"));
+
 	$api = \Ubnt\UcrmPluginSdk\Service\UcrmApi::create();
-	$config = json_decode(file_get_contents("data/config.json"), true);
 	$token = $config["nms-api-token"];
 	$nmsapi = \Ubnt\UcrmPluginSdk\Service\UnmsApi::create($token);
 
@@ -31,8 +28,39 @@ try {
 		fwrite($file, json_encode($json));
 		fclose($file);	
 	} 
+
+	// Update Adblock Surcharge
 	$json = file_get_contents($fname);
 	$data = json_decode($json, true);
+	$surchargeId = intval($config['surcharge-id']);
+	foreach(array_keys($data) as $clientId){
+		$services = $api->get('clients/services',['clientId' => $clientId]);
+		$instanceId = -1;
+		// Determine if surcharge has been added
+		foreach($services as $service){
+			$surcharges = $api->get('clients/services/'.$service['id'].'/service-surcharges');
+			foreach($surcharges as $charge){
+				if($charge['surchargeId'] === $surchargeId){
+					$instanceId = $charge['id'];
+					break;
+				}
+			}
+			if ($instanceId != -1){
+				break;
+			}
+		}
+		if($data[$clientId]){
+			// Add surcharge if it doesn't already exist
+			if ($instanceId == -1 and isset($services[0])){
+				$api->post('clients/services/'.$services[0]['id'].'/service-surcharges', ['surchargeId'=>$surchargeId]);	
+			}
+		} elseif ($instanceId != -1){
+			$api->delete('clients/services/service-surcharges/'.$instanceId);
+		}
+	}
+
+
+	// Gather Client Site Ids from Client Ids
 	$sites = $nmsapi->get('sites');
 	$siteids = array();
 	foreach($sites as $site){
@@ -45,6 +73,8 @@ try {
 			}
 		}
 	}
+
+	// Gather IP Addresses Associated With Client Sites
 	$ips = array();
 	$noIps = array();
 	$devices = $nmsapi->get('devices');
@@ -94,7 +124,8 @@ try {
 	foreach ($noIps as $ip){
 		fwrite($file, "  - ".$ip."\n");
 	}
-	
+
+	// Write interface variables for NAT rule creation	
 	$detail = $nmsapi->get('devices/'.$gateway.'/detail');
 	$interfaces = array();
 	fwrite($file, "interfaces:\n");
@@ -111,4 +142,3 @@ try {
 } catch(Exception $e){
 	log_mess("Exception: " . $e->getMessage());
 }
-var_dump(file_get_contents("data/plugin.log"));

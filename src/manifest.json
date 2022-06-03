@@ -34,7 +34,12 @@
 	{
 		"key": "gateway-id",
 		"label": "Gateway ID",
-		"decription": "UNMS Device ID For Gateway Edgerouter",
+		"description": "UNMS Device ID For Gateway Edgerouter",
+		"required": 1
+	},
+	{
+		"key": "surcharge-id",
+		"label": "Surcharge ID",
 		"required": 1
 	},
 	{
