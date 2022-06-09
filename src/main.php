@@ -81,6 +81,9 @@ try {
 	foreach($devices as $device){
 		$id = $device["identification"]["site"]["id"];
 		$ip = $device["ipAddress"];
+		if (strlen($ip) == 0) {
+			continue;
+		}
 		$pos = strpos($ip, '/');
 		if ($pos !== false) {
 			$ip = substr($ip, 0, $pos);
