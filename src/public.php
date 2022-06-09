@@ -30,6 +30,7 @@ if (! isset($_POST["block-status"])) {
                         <label for="yes"> Yes, I want to block ads for '.$cost.'/month</label><br>
                         <input id="no" type="radio" name="block-status" value="no">
                         <label for="no"> No, I do not want to block ads </label><br>
+			<input type="submit" value="submit">
                 </form>
       </div>
     </section>

@@ -1,0 +1,11 @@
+---
+- name: Remove Gateway Adblocking NAT Rules
+  connection: network_cli
+  hosts: gateways
+  vars_files:
+          data/vars.yml
+  user: "{{ plugin_user }}"
+  tasks:
+          - name: Remove NAT Rules
+            community.network.edgeos_config:
+                    lines:

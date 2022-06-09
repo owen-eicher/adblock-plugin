@@ -1,0 +1,13 @@
+---
+- name: Remove Ad Blocking IPs
+  connection: network_cli
+  hosts: gateways
+  vars_files:
+          data/vars.yml
+  user: "{{ plugin_user }}"
+  tasks:
+
+
+          - name: Remove IPs
+            community.network.edgeos_config:
+                    lines:

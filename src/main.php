@@ -9,6 +9,11 @@ try {
 		global $log;
 		$log->appendLog($message);
 	}
+	function indent($file, $spaces=24){
+		for ($i = 0; $i < $spaces; $i++){
+			fwrite($file, ' ');
+		}
+	}
 
 	log_mess(shell_exec("date"));
 
@@ -75,7 +80,7 @@ try {
 	}
 
 	// Gather IP Addresses Associated With Client Sites
-	$ips = array();
+	$yesIps = array();
 	$noIps = array();
 	$devices = $nmsapi->get('devices');
 	foreach($devices as $device){
@@ -89,13 +94,13 @@ try {
 			$ip = substr($ip, 0, $pos);
 		}	
 		if (in_array($id, $siteids)) {
-			if (!in_array($ip, $ips)){
-				array_push($ips, $ip);
+			if (!in_array($ip, $yesIps)){
+				array_push($yesIps, $ip);
 				if (($key = array_search($ip, $noIps)) !== false){
 					unset($noIps[$key]);
 				}
 			}
-		} elseif (!in_array($ip, $ips) and !in_array($ip, $noIps)) {
+		} elseif (!in_array($ip, $yesIps) and !in_array($ip, $noIps)) {
 			array_push($noIps, $ip);
 		}
 	}
@@ -103,10 +108,23 @@ try {
 	// Gather Configuration Information
 	$groupName = $config["group-name"];
 	$ruleNum = $config["destination-rule-number"];
-	$sRuleNum = $config["source-rule-number"];
+	$sourceRuleNum = $config["source-rule-number"];
 	$userName = $config["user-name"];
 	$inAddress = $config["inside-address"];
-	$gateway = $config["gateway-id"];
+	$gatewayId = $config["gateway-id"];
+
+	// Create ansible playbooks
+	$playname = "ips.yml";
+	$playbook = fopen($playname, 'w');
+
+	$rmName = "rmAllIps.yml";
+	$rmIpFile = fopen($rmName, 'w');
+
+	$ruleName = "rules.yml";
+	$ruleFile = fopen($ruleName, 'w');
+
+	$rmrulename = "rmrules.yml";
+	$rmrulefile = fopen($rmrulename, 'w');
 
 	// Create vars.yml for Ansible Execution
 	$fname = "data/vars.yml";
@@ -118,30 +136,77 @@ try {
 	fwrite($file, "plugin_user: ".$userName."\n");
 
 	// Write Opt-In IPs
-	fwrite($file, "ips:\n");
-	foreach ($ips as $ip){
-		fwrite($file, "  - ".$ip."\n");
+	fwrite($playbook, file_get_contents("ips.temp")."\n");
+	fwrite($rmIpFile, file_get_contents("rmAllIps.temp"));
+	foreach ($yesIps as $ip){
+		indent($playbook,$spaces);
+		indent($rmIpFile, $spaces);
+		fwrite($playbook, "- set firewall group address-group {{ group_name }} address ".$ip."\n");
+		fwrite($rmIpFile, "- delete firewall group address-group {{ group_name }} address ".$ip."\n");
 	}
+	if (count($yesIps) == 0){
+		indent($playbook,$spaces);
+		fwrite($playbook, "- set firewall\n");
+	}
+
 	// Write Opt-Out IPs
-	fwrite($file, "no_ips:\n");
+	fwrite($playbook, "\n".file_get_contents("rmips.temp"));
 	foreach ($noIps as $ip){
-		fwrite($file, "  - ".$ip."\n");
+		indent($playbook);
+		fwrite($playbook, "- delete firewall group address-group {{ group_name }} address ".$ip."\n");
+		indent($rmIpFile);
+		fwrite($rmIpFile, "- delete firewall group address-group {{ group_name }} address ".$ip."\n");
+	}
+	if (count($noIps) == 0){
+		indent($playbook);
+		fwrite($playbook, "- set firewall\n");
 	}
 
 	// Write interface variables for NAT rule creation	
-	$detail = $nmsapi->get('devices/'.$gateway.'/detail');
+	$detail = $nmsapi->get('devices/'.$gatewayId.'/detail');
 	$interfaces = array();
-	fwrite($file, "interfaces:\n");
+	#fwrite($file, "interfaces:\n");
+	fwrite($ruleFile, file_get_contents("rules.temp")."\n");
 	foreach($detail['interfaces'] as $interface){
 		$name = $interface['identification']['name'];
-		fwrite($file, "  - { num: ".$ruleNum++.", val: ".$name." }\n");
-		$interfaces[$sRuleNum++] = $name;
+		// fwrite($file, "  - { num: ".$ruleNum++.", val: ".$name." }\n");
+		$temp = array(
+			"- set service nat rule ".$sourceRuleNum." description 'Ad Block'",
+			"- set service nat rule ".$sourceRuleNum." destination address {{ inside_address }}",
+			"- set service nat rule ".$sourceRuleNum." destination port 53",
+			"- set service nat rule ".$sourceRuleNum." log disable",
+			"- set service nat rule ".$sourceRuleNum." protocol tcp_udp",
+			"- set service nat rule ".$sourceRuleNum." source group address-group {{ group_name }}",
+			"- set service nat rule ".$sourceRuleNum." outbound-interface ".$name,
+			"- set service nat rule ".$sourceRuleNum." type masquerade",
+			"- set service nat rule ".$ruleNum." description 'Ad Block'",
+			"- set service nat rule ".$ruleNum." destination port 53",
+			"- set service nat rule ".$ruleNum." inbound-interface ".$name,
+			"- set service nat rule ".$ruleNum." inside-address address {{ inside_address }}",
+			"- set service nat rule ".$ruleNum." inside-address port 53",
+			"- set service nat rule ".$ruleNum." log disable",
+			"- set service nat rule ".$ruleNum." protocol tcp_udp",
+			"- set service nat rule ".$ruleNum." source group address-group {{ group_name }}",
+			"- set service nat rule ".$ruleNum." type destination"
+		);
+
+		foreach(array_keys($temp) as $key){
+			indent($ruleFile);
+			fwrite($ruleFile, $temp[$key]."\n");
+		}
+
+		$interfaces[$ruleNum++] = $name;
+		$interfaces[$sourceRuleNum++] = $name;
 	}
-	fwrite($file, "source_interfaces:\n");
+	#fwrite($file, "source_interfaces:\n");
+	fwrite($rmrulefile, file_get_contents("rmrules.temp"));
 	foreach(array_keys($interfaces) as $num){
-		fwrite($file, "  - { num: ".$num.", val: ".$interfaces[$num]." }\n");
+		#fwrite($file, "  - { num: ".$num.", val: ".$interfaces[$num]." }\n");
+		indent($rmrulefile);
+		fwrite($rmrulefile, "- delete service nat rule ".$num."\n");
 	}
 	fclose($file);
+	log_mess(shell_exec("date"));
 } catch(Exception $e){
 	log_mess("Exception: " . $e->getMessage());
 }

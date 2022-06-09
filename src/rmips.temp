@@ -1,0 +1,3 @@
+          - name: Remove IPs Gateway
+            community.network.edgeos_config:
+                    lines:

@@ -1,0 +1,22 @@
+---
+- name: Set Ad Block IPS
+  connection: network_cli
+  hosts: gateways
+  vars_files:
+          data/vars.yml
+  user: "{{ plugin_user }}"
+  tasks:
+          - name: Backup Gateway
+            community.network.edgeos_config:
+                    backup: yes
+                    backup_options:
+                            dir_path: "{{ backup_path }}"
+                            filename: "no_ips.conf"
+
+          - name: Create Address Group
+            community.network.edgeos_config:
+                    lines:
+                            - set firewall group address-group "{{ group_name }}"
+          - name: Add IPs to Address Group
+            community.network.edgeos_config:
+                    lines:
