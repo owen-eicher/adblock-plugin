@@ -7,7 +7,6 @@
   user: "{{ plugin_user }}"
   tasks:
 
-
           - name: Remove IPs
             community.network.edgeos_config:
                     lines:

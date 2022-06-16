@@ -17,6 +17,7 @@
             community.network.edgeos_config:
                     lines:
                             - set firewall group address-group "{{ group_name }}"
+
           - name: Add IPs to Address Group
             community.network.edgeos_config:
                     lines:

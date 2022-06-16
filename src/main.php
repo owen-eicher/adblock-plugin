@@ -136,16 +136,16 @@ try {
 	fwrite($file, "plugin_user: ".$userName."\n");
 
 	// Write Opt-In IPs
-	fwrite($playbook, file_get_contents("ips.temp")."\n");
+	fwrite($playbook, file_get_contents("ips.temp"));
 	fwrite($rmIpFile, file_get_contents("rmAllIps.temp"));
 	foreach ($yesIps as $ip){
-		indent($playbook,$spaces);
-		indent($rmIpFile, $spaces);
+		indent($playbook);
+		indent($rmIpFile);
 		fwrite($playbook, "- set firewall group address-group {{ group_name }} address ".$ip."\n");
 		fwrite($rmIpFile, "- delete firewall group address-group {{ group_name }} address ".$ip."\n");
 	}
 	if (count($yesIps) == 0){
-		indent($playbook,$spaces);
+		indent($playbook);
 		fwrite($playbook, "- set firewall\n");
 	}
 
@@ -165,11 +165,9 @@ try {
 	// Write interface variables for NAT rule creation	
 	$detail = $nmsapi->get('devices/'.$gatewayId.'/detail');
 	$interfaces = array();
-	#fwrite($file, "interfaces:\n");
-	fwrite($ruleFile, file_get_contents("rules.temp")."\n");
+	fwrite($ruleFile, file_get_contents("rules.temp"));
 	foreach($detail['interfaces'] as $interface){
 		$name = $interface['identification']['name'];
-		// fwrite($file, "  - { num: ".$ruleNum++.", val: ".$name." }\n");
 		$temp = array(
 			"- set service nat rule ".$sourceRuleNum." description 'Ad Block'",
 			"- set service nat rule ".$sourceRuleNum." destination address {{ inside_address }}",
@@ -198,14 +196,19 @@ try {
 		$interfaces[$ruleNum++] = $name;
 		$interfaces[$sourceRuleNum++] = $name;
 	}
-	#fwrite($file, "source_interfaces:\n");
+
 	fwrite($rmrulefile, file_get_contents("rmrules.temp"));
 	foreach(array_keys($interfaces) as $num){
-		#fwrite($file, "  - { num: ".$num.", val: ".$interfaces[$num]." }\n");
 		indent($rmrulefile);
 		fwrite($rmrulefile, "- delete service nat rule ".$num."\n");
 	}
+
+	// Close Files
 	fclose($file);
+	fclose($playbook);
+	fclose($rmIpFile);
+	fclose($ruleFile);
+	fclose($rmrulefile);
 	log_mess(shell_exec("date"));
 } catch(Exception $e){
 	log_mess("Exception: " . $e->getMessage());

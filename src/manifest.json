@@ -16,14 +16,6 @@
         },
         "author": "Owen Eicher"
     },
-    "menu": [
-        {
-            "key": "Services",
-            "label": "Advertisement Blocking",
-            "type": "client",
-            "target": "iframe"
-        }
-    ],
     "configuration": [
 	{
 		"key": "nms-api-token",
